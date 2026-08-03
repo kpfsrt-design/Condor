@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Condor Footwear - Event Management System</title>
+  <style>
+    :root {
+      --primary: #1B365D;
+      --secondary: #4A777A;
+      --accent: #2C5282;
+      --bg: #F7FAFC;
+      --surface: #FFFFFF;
+      --text: #2D3748;
+      --danger: #E53E3E;
+      --success: #38A169;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+    /* Auth Screens */
+    .auth-overlay { position: fixed; inset: 0; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .auth-card { background: white; padding: 30px; border-radius: 8px; width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .auth-card h2 { color: var(--primary); margin-bottom: 20px; font-size: 20px; text-align: center; }
+
+    /* Sidebar Navigation */
+    #sidebar { width: 250px; background: var(--primary); color: white; display: flex; flex-direction: column; }
+    #sidebar .brand { padding: 20px; font-size: 18px; font-weight: bold; background: #12243e; text-align: center; letter-spacing: 1px; }
+    .nav-item { padding: 15px 20px; cursor: pointer; color: #CBD5E0; transition: 0.2s; border-left: 4px solid transparent; }
+    .nav-item:hover, .nav-item.active { background: #2A4365; color: white; border-left-color: #63B3ED; }
+
+    /* Main Workspace */
+    #main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+    header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; }
+    .container { padding: 30px; }
+
+    /* KPI Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .kpi-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--accent); }
+    .kpi-card h4 { color: #718096; font-size: 13px; text-transform: uppercase; margin-bottom: 10px; }
+    .kpi-card .number { font-size: 28px; font-weight: bold; color: var(--primary); }
+
+    /* Tables & Forms */
+    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-size: 14px; }
+    th { background-color: #EDF2F7; color: var(--primary); font-weight: 600; }
+    
+    /* Inputs & Buttons */
+    input, select { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #CBD5E0; border-radius: 4px; }
+    .btn { background: var(--primary); color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+    .btn:hover { background: var(--accent); }
+    .btn-danger { background: var(--danger); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; margin-right: 5px; }
+
+    .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .badge-active { background: #C6F6D5; color: #22543D; }
+    .badge-pending { background: #FEFCBF; color: #744210; }
+    .badge-deactivated { background: #FED7D7; color: #742A2A; }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- AUTHENTICATION OVERLAY -->
+  <div id="authOverlay" class="auth-overlay">
+    <!-- Login Form -->
+    <div id="loginCard" class="auth-card">
+      <h2>Condor EMS Login</h2>
+      <input type="email" id="loginEmail" placeholder="Email Address">
+      <input type="password" id="loginPassword" placeholder="Password">
+      <button class="btn" style="width:100%" onclick="login()">Sign In</button>
+      <p style="margin-top: 15px; font-size: 12px; text-align: center;">
+        Need access? <a href="#" onclick="toggleAuth('register')">Register here</a>
+      </p>
+    </div>
+
+    <!-- Registration Form -->
+    <div id="registerCard" class="auth-card hidden">
+      <h2>Register Account</h2>
+      <input type="text" id="regName" placeholder="Full Name">
+      <input type="email" id="regEmail" placeholder="Work Email">
+      <input type="password" id="regPassword" placeholder="Password">
+      <button class="btn" style="width:100%" onclick="register()">Submit Registration</button>
+      <p style="margin-top: 15px; font-size: 12px; text-align: center;">
+        Back to <a href="#" onclick="toggleAuth('login')">Login</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- MAIN APP SIDEBAR -->
+  <div id="sidebar">
+    <div class="brand">CONDOR EMS</div>
+    <div class="nav-item active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="nav-item" onclick="showTab('events')">Event Master</div>
+    <div class="nav-item" onclick="showTab('newEvent')">New Event</div>
+    <div id="adminNav" class="nav-item hidden" onclick="showTab('admin')">Admin Console</div>
+  </div>
+
+  <!-- MAIN APP WORKSPACE -->
+  <div id="main">
+    <header>
+      <h3 id="pageTitle">Dashboard</h3>
+      <div>
+        <span id="userProfile" style="font-weight: 600; margin-right: 15px;"></span>
+        <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="container">
+      
+      <!-- DASHBOARD TAB -->
+      <div id="dashboardTab" class="tab-content">
+        <div class="kpi-grid">
+          <div class="kpi-card"><h4>Total Events</h4><div class="number" id="kpiTotal">0</div></div>
+          <div class="kpi-card"><h4>Upcoming</h4><div class="number" id="kpiUpcoming">0</div></div>
+          <div class="kpi-card"><h4>In Progress</h4><div class="number" id="kpiProgress">0</div></div>
+          <div class="kpi-card"><h4>Completed</h4><div class="number" id="kpiCompleted">0</div></div>
+        </div>
+      </div>
+
+      <!-- EVENT MASTER TAB -->
+      <div id="eventsTab" class="tab-content hidden">
+        <div class="card">
+          <h3>All Scheduled Events</h3>
+          <table id="eventsTable">
+            <thead>
+              <tr>
+                <th>Event ID</th><th>Name</th><th>Type</th><th>State</th><th>City</th><th>Start Date</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NEW EVENT TAB -->
+      <div id="newEventTab" class="tab-content hidden">
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+          <h3>Register New Event</h3>
+          <input type="text" id="evtName" placeholder="Event Name">
+          <select id="evtType">
+            <option>Exhibition / Trade Fair</option>
+            <option>Dealer Meet</option>
+            <option>Product Launch</option>
+            <option>Sales Conference</option>
+          </select>
+          <input type="text" id="evtDept" value="Sales & Marketing">
+          <input type="text" id="evtState" placeholder="State (e.g. Gujarat)">
+          <input type="text" id="evtCity" placeholder="City (e.g. Surat)">
+          <label>Start Date</label>
+          <input type="date" id="evtStart">
+          <label>End Date</label>
+          <input type="date" id="evtEnd">
+          <button class="btn" style="width: 100%;" onclick="submitEvent()">Save Event</button>
+        </div>
+      </div>
+
+      <!-- ADMIN CONSOLE TAB -->
+      <div id="adminTab" class="tab-content hidden">
+        <div class="card">
+          <h3>User Administration & Registration Approvals</h3>
+          <p style="margin-bottom: 15px; font-size: 13px;">Registration Link: <code id="shareLink"></code></p>
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // REPLACE WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL:
+   const API_URL = "https://script.google.com/macros/s/AKfycbxpKaqgmpvjp349jR4J29r3PmnB1wF6SWOFPyk8FtdGapQ7oJpZTdckOi-1XsFCb52H/exec";
+
+    let currentUser = null;
+
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('mode') === 'register') {
+        toggleAuth('register');
+      }
+      document.getElementById('shareLink').innerText = window.location.origin + window.location.pathname + '?mode=register';
+    };
+
+    function toggleAuth(view) {
+      if (view === 'register') {
+        document.getElementById('loginCard').classList.add('hidden');
+        document.getElementById('registerCard').classList.remove('hidden');
+      } else {
+        document.getElementById('registerCard').classList.add('hidden');
+        document.getElementById('loginCard').classList.remove('hidden');
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'login', email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        currentUser = data.user;
+        document.getElementById('authOverlay').classList.add('hidden');
+        document.getElementById('userProfile').innerText = `${currentUser.name} (${currentUser.role})`;
+        
+        if (currentUser.role === 'Admin') {
+          document.getElementById('adminNav').classList.remove('hidden');
+        }
+        
+        loadDashboard();
+      } else {
+        alert(data.message);
+      }
+    }
+
+    async function register() {
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'registerUser', name, email, password })
+      });
+      const data = await res.json();
+      
+      alert(data.message);
+      if (data.success) toggleAuth('login');
+    }
+
+    function logout() {
+      location.reload();
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+      if (tabName === 'dashboard') {
+        document.getElementById('dashboardTab').classList.remove('hidden');
+        loadDashboard();
+      } else if (tabName === 'events') {
+        document.getElementById('eventsTab').classList.remove('hidden');
+        loadEvents();
+      } else if (tabName === 'newEvent') {
+        document.getElementById('newEventTab').classList.remove('hidden');
+      } else if (tabName === 'admin') {
+        document.getElementById('adminTab').classList.remove('hidden');
+        loadUsers();
+      }
+      document.getElementById('pageTitle').innerText = tabName.toUpperCase();
+    }
+
+    async function loadDashboard() {
+      const res = await fetch(`${API_URL}?action=getDashboardKPIs`);
+      const kpis = await res.json();
+      document.getElementById('kpiTotal').innerText = kpis.totalEvents;
+      document.getElementById('kpiUpcoming').innerText = kpis.upcoming;
+      document.getElementById('kpiProgress').innerText = kpis.inProgress;
+      document.getElementById('kpiCompleted').innerText = kpis.completed;
+    }
+
+    async function loadEvents() {
+      const res = await fetch(`${API_URL}?action=getEvents`);
+      const events = await res.json();
+      const tbody = document.querySelector('#eventsTable tbody');
+      tbody.innerHTML = '';
+      
+      events.forEach(e => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${e['Event ID']}</td>
+            <td>${e['Event Name']}</td>
+            <td>${e['Event Type']}</td>
+            <td>${e['State']}</td>
+            <td>${e['City']}</td>
+            <td>${e['Start Date'].substring(0,10)}</td>
+            <td><span class="badge badge-active">${e['Event Status']}</span></td>
+          </tr>`;
+      });
+    }
+
+    async function submitEvent() {
+      const payload = {
+        action: 'createEvent',
+        name: document.getElementById('evtName').value,
+        type: document.getElementById('evtType').value,
+        dept: document.getElementById('evtDept').value,
+        state: document.getElementById('evtState').value,
+        city: document.getElementById('evtCity').value,
+        startDate: document.getElementById('evtStart').value,
+        endDate: document.getElementById('evtEnd').value,
+        createdBy: currentUser.email
+      };
+
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Event Created! ID: ${data.eventId}`);
+        showTab('events');
+      }
+    }
+
+    async function loadUsers() {
+      const res = await fetch(`${API_URL}?action=getUsers`);
+      const users = await res.json();
+      const tbody = document.querySelector('#usersTable tbody');
+      tbody.innerHTML = '';
+
+      users.forEach(u => {
+        let statusBadge = u.Status === 'Active' ? 'badge-active' : (u.Status === 'Pending' ? 'badge-pending' : 'badge-deactivated');
+        tbody.innerHTML += `
+          <tr>
+            <td>${u['Full Name']}</td>
+            <td>${u.Email}</td>
+            <td>${u.Role}</td>
+            <td><span class="badge ${statusBadge}">${u.Status}</span></td>
+            <td>
+              <button class="btn btn-sm" onclick="updateUser('${u.Email}', 'setStatus', 'Active')">Activate</button>
+              <button class="btn btn-sm" onclick="updateUser('${u.Email}', 'setStatus', 'Deactivated')">Deactivate</button>
+              <button class="btn btn-sm" onclick="resetPwd('${u.Email}')">Reset Pwd</button>
+              <button class="btn btn-sm btn-danger" onclick="updateUser('${u.Email}', 'deleteUser')">Remove</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    async function updateUser(email, subAction, newStatus = '') {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'adminUpdateUser', email, subAction, newStatus })
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadUsers();
+    }
+
+    async function resetPwd(email) {
+      const newPassword = prompt("Enter new password for " + email);
+      if (!newPassword) return;
+      
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'adminUpdateUser', email, subAction: 'resetPassword', newPassword })
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadUsers();
+    }
+  </script>
+</body>
+</html>
