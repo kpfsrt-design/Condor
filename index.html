@@ -467,15 +467,38 @@
       }
     }
 
-    function populateEventDropdowns() {
-      const propSelect = document.getElementById('prop-event-id');
-      const reqSelect = document.getElementById('req-event-id');
-      
-      let html = AppState.events.map(ev => `<option value="${ev.Event_ID}">${ev.Event_ID} - ${ev.Name}</option>`).join('');
-      if (!html) html = '<option value="">No Events Registered</option>';
-      
-      propSelect.innerHTML = html;
-      reqSelect.innerHTML = html;
+  function populateEventDropdowns() {
+  const propSelect = document.getElementById('prop-event-id');
+  const reqSelect = document.getElementById('req-event-id');
+  
+  if (!propSelect || !reqSelect) return;
+
+  const savedEvents = JSON.parse(localStorage.getItem('condor_events') || '[]');
+  const allEventsMap = new Map();
+
+  [...AppState.events, ...savedEvents].forEach(ev => {
+    const id = ev.Event_ID || ev.id;
+    const name = ev.Name || ev.name;
+    if (id && name) {
+      allEventsMap.set(id, { Event_ID: id, Name: name });
+    }
+  });
+
+  const uniqueEvents = Array.from(allEventsMap.values());
+
+  if (uniqueEvents.length === 0) {
+    propSelect.innerHTML = '<option value="">No Events Available</option>';
+    reqSelect.innerHTML = '<option value="">No Events Available</option>';
+    return;
+  }
+
+  const optionsHtml = uniqueEvents.map(ev => 
+    `<option value="${ev.Event_ID}">${ev.Event_ID} - ${ev.Name}</option>`
+  ).join('');
+  
+  propSelect.innerHTML = optionsHtml;
+  reqSelect.innerHTML = optionsHtml;
+}
     }
 
     function getDaysDiff(startDateStr) {
