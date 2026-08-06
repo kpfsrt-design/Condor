@@ -50,17 +50,26 @@
     .table-container { background: white; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; margin-bottom: 25px; }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
     th { background: #f1f5f9; padding: 12px 16px; font-weight: 600; color: #475569; border-bottom: 1px solid var(--border-color); }
-    td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
-    tr:last-child td { border-bottom: none; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
 
-    /* Badges */
+    /* Excel Grid Specifics */
+    .excel-grid-table th { background: #e2e8f0; font-size: 0.85rem; }
+    .excel-grid-table td { padding: 0; }
+    .excel-input { width: 100%; padding: 8px; border: none; outline: none; font-size: 0.88rem; background: transparent; }
+    .excel-input:focus { background: #eff6ff; box-shadow: inset 0 0 0 2px var(--primary); }
+
+    /* Tabs Component */
+    .tab-bar { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 16px; gap: 8px; }
+    .tab-btn { padding: 10px 18px; border: none; background: none; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #f1f5f9; border-radius: 6px 6px 0 0; }
+
+    /* Badges & Buttons */
     .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
     .badge-upcoming { background: #dbeafe; color: #1e40af; }
     .badge-urgent { background: #fee2e2; color: #991b1b; }
     .badge-approved { background: #dcfce7; color: #166534; }
     .badge-pending { background: #fef3c7; color: #92400e; }
 
-    /* Form Styles */
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: #475569; }
     .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
@@ -68,8 +77,9 @@
 
     .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
     .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #e2e8f0; color: #334155; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
 
-    /* Modal / Auth Overlay */
+    /* Overlay */
     .auth-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex; align-items: center; justify-content: center; z-index: 999; }
     .auth-box { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     .toast { position: fixed; bottom: 20px; right: 20px; background: #334155; color: white; padding: 12px 20px; border-radius: 6px; display: none; font-size: 0.9rem; z-index: 1000; }
@@ -77,7 +87,6 @@
 </head>
 <body>
 
-  <!-- SIDEBAR NAVIGATION -->
   <aside>
     <div>
       <div class="brand">Condor Enterprise</div>
@@ -87,13 +96,12 @@
           <li><a id="nav-events" onclick="switchView('events')">Scheduled Events</a></li>
           <li><a id="nav-proposals" onclick="switchView('proposals')">Proposals & Approvals</a></li>
           <li><a id="nav-execution" onclick="switchView('execution')">Dispatch & Samples</a></li>
-          <li><a id="nav-new-event" onclick="switchView('newEvent')">Create New Event</a></li>
+          <li><a id="nav-newEvent" onclick="switchView('newEvent')">Create New Event</a></li>
         </ul>
       </nav>
     </div>
   </aside>
 
-  <!-- MAIN MAIN WRAPPER -->
   <main>
     <header>
       <div class="header-title" id="page-title">Executive Dashboard</div>
@@ -145,12 +153,13 @@
                 <th>Category</th>
                 <th>Location</th>
                 <th>Start Date</th>
+                <th>End Date</th>
                 <th>Remaining Days</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody id="tb-events">
-              <tr><td colspan="7" style="text-align: center;">Fetching events list...</td></tr>
+              <tr><td colspan="8" style="text-align: center;">Fetching events list...</td></tr>
             </tbody>
           </table>
         </div>
@@ -200,7 +209,7 @@
             </div>
             <div class="form-group">
               <label>Director / Management Meeting Notes</label>
-              <textarea id="prop-notes" class="form-control" rows="3" placeholder="Summary of discussion with directors, specific guidelines, or conditional approvals..."></textarea>
+              <textarea id="prop-notes" class="form-control" rows="3" placeholder="Summary of discussion with directors, specific guidelines..."></textarea>
             </div>
             <button type="submit" class="btn-primary">Submit Proposal for Review</button>
           </form>
@@ -230,31 +239,55 @@
         </div>
       </section>
 
-      <!-- DISPATCH & SAMPLES EXECUTION VIEW -->
+      <!-- MULTI-TAB EXCEL GRID FOR DISPATCH & SAMPLES -->
       <section id="view-execution" class="view-panel">
         <div class="card" style="margin-bottom: 25px;">
-          <h3 style="margin-bottom: 16px;">Add Materials & Sample Requirements List</h3>
-          <form id="form-materials" onsubmit="handleRequirementsSubmit(event)">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Select Event</label>
-                <select id="req-event-id" class="form-control" required></select>
-              </div>
-              <div class="form-group">
-                <label>Dispatch Buffer (Days before Event)</label>
-                <input type="number" id="req-buffer-days" class="form-control" value="7" required>
-              </div>
+          <h3 style="margin-bottom: 16px;">Add Materials, Samples & Gifts Requirements</h3>
+          
+          <div class="form-grid" style="margin-bottom: 20px;">
+            <div class="form-group">
+              <label>Select Event</label>
+              <select id="req-event-id" class="form-control" required></select>
             </div>
             <div class="form-group">
-              <label>Requirements List (Paste CSV or Add Items: Category, Item Name, Quantity)</label>
-              <textarea id="req-items-raw" class="form-control" rows="4" placeholder="Sample List, Footwear Sample Box A, 10&#10;Promotional Material, Standees & Rollup Banners, 4&#10;Promotional Material, Product Catalogues, 500" required></textarea>
+              <label>Dispatch Buffer (Days before Event)</label>
+              <input type="number" id="req-buffer-days" class="form-control" value="7" required>
             </div>
-            <button type="submit" class="btn-primary">Queue Materials & Auto-Set Dispatch Target</button>
-          </form>
+          </div>
+
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchCategoryTab('Samples', this)">Sample Requirements</button>
+            <button class="tab-btn" onclick="switchCategoryTab('Promotional', this)">Promotional Materials</button>
+            <button class="tab-btn" onclick="switchCategoryTab('Gifts', this)">Gifts & Giveaways</button>
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+            💡 <b>Excel Tip:</b> Copy cells directly from Excel or Google Sheets and paste (Ctrl+V) into any row below.
+          </p>
+
+          <div class="table-container">
+            <table class="excel-grid-table" id="excel-grid">
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;">#</th>
+                  <th>Item Name / Description</th>
+                  <th style="width: 120px;">Quantity</th>
+                  <th>Remarks / Specific Instructions</th>
+                  <th style="width: 50px;"></th>
+                </tr>
+              </thead>
+              <tbody id="grid-body"></tbody>
+            </table>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <button type="button" class="btn-secondary" onclick="addGridRow()">+ Add Row</button>
+            <button type="button" class="btn-primary" onclick="submitGridRequirements()">Queue Requirements for Dispatch</button>
+          </div>
         </div>
 
         <div class="table-container">
-          <div style="padding: 16px; font-weight: bold; border-bottom: 1px solid var(--border-color);">Execution & Dispatch Status</div>
+          <div style="padding: 16px; font-weight: bold; border-bottom: 1px solid var(--border-color);">Execution & Dispatch Queue</div>
           <table>
             <thead>
               <tr>
@@ -263,18 +296,19 @@
                 <th>Category</th>
                 <th>Item Details</th>
                 <th>Qty</th>
+                <th>Remarks</th>
                 <th>Target Dispatch Date</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody id="tb-requirements">
-              <tr><td colspan="7" style="text-align: center;">Loading requirement checklists...</td></tr>
+              <tr><td colspan="8" style="text-align: center;">Loading requirement checklists...</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- CREATE NEW EVENT VIEW -->
+      <!-- CREATE NEW EVENT VIEW WITH END DATE -->
       <section id="view-newEvent" class="view-panel">
         <div class="card" style="max-width: 600px; margin: 0 auto;">
           <h3 style="margin-bottom: 16px;">Create New Event Master</h3>
@@ -301,11 +335,17 @@
                 <input type="text" id="ev-city" class="form-control" placeholder="e.g. Surat" required>
               </div>
             </div>
-            <div class="form-group">
-              <label>Start Date</label>
-              <input type="date" id="ev-start-date" class="form-control" required>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Event Start Date</label>
+                <input type="date" id="ev-start-date" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label>Event End Date</label>
+                <input type="date" id="ev-end-date" class="form-control" required>
+              </div>
             </div>
-            <button type="submit" class="btn-primary">Register Event</button>
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Register Event</button>
           </form>
         </div>
       </section>
@@ -334,17 +374,13 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    /* ==========================================================================
-       CORE SAAS CLIENT ENGINE
-       ========================================================================== */
     const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbz4psjWTTUgkG9jFTVVsB2Y-YXE_GeffL72THn3j2wafpju3hjbkQSuxX2neVZrvV0yg/exec";
 
     let AppState = {
-      user: null,
-      tenantId: 'COMP-1001',
-      events: [],
-      proposals: [],
-      requirements: []
+      events: JSON.parse(localStorage.getItem('condor_events') || '[]'),
+      proposals: JSON.parse(localStorage.getItem('condor_proposals') || '[]'),
+      requirements: JSON.parse(localStorage.getItem('condor_reqs') || '[]'),
+      activeCategory: 'Samples'
     };
 
     function showToast(msg) {
@@ -378,11 +414,7 @@
       const turnover = parseFloat(document.getElementById('prop-turnover').value) || 0;
       const expenses = parseFloat(document.getElementById('prop-expenses').value) || 0;
       const ratioEl = document.getElementById('prop-ratio');
-      if (turnover > 0) {
-        ratioEl.value = ((expenses / turnover) * 100).toFixed(2) + '%';
-      } else {
-        ratioEl.value = '0%';
-      }
+      ratioEl.value = turnover > 0 ? ((expenses / turnover) * 100).toFixed(2) + '%' : '0%';
     }
 
     async function handleLogin(e) {
@@ -394,29 +426,44 @@
 
     function signOut() {
       document.getElementById('auth-modal').style.display = 'flex';
-      showToast('Signed out.');
     }
 
     async function loadAllData() {
+      renderAll();
       try {
         const [resEv, resProp, resReq] = await Promise.all([
-          fetch(`${API_ENDPOINT}?action=getEvents&companyId=${AppState.tenantId}`).then(r => r.json()),
-          fetch(`${API_ENDPOINT}?action=getProposals&companyId=${AppState.tenantId}`).then(r => r.json()),
-          fetch(`${API_ENDPOINT}?action=getRequirements&companyId=${AppState.tenantId}`).then(r => r.json())
+          fetch(`${API_ENDPOINT}?action=getEvents`).then(r => r.json()),
+          fetch(`${API_ENDPOINT}?action=getProposals`).then(r => r.json()),
+          fetch(`${API_ENDPOINT}?action=getRequirements`).then(r => r.json())
         ]);
 
-        AppState.events = Array.isArray(resEv) ? resEv : [];
-        AppState.proposals = Array.isArray(resProp) ? resProp : [];
-        AppState.requirements = Array.isArray(resReq) ? resReq : [];
+        if (Array.isArray(resEv) && resEv.length > 0) {
+          AppState.events = resEv;
+          localStorage.setItem('condor_events', JSON.stringify(resEv));
+        }
+        if (Array.isArray(resProp) && resProp.length > 0) {
+          AppState.proposals = resProp;
+          localStorage.setItem('condor_proposals', JSON.stringify(resProp));
+        }
+        if (Array.isArray(resReq) && resReq.length > 0) {
+          AppState.requirements = resReq;
+          localStorage.setItem('condor_reqs', JSON.stringify(resReq));
+        }
 
-        renderEvents();
-        renderProposals();
-        renderRequirements();
-        renderDashboard();
-        populateEventDropdowns();
+        renderAll();
       } catch (err) {
-        console.error('Data Fetch Error:', err);
-        showToast('Connected using local engine cache.');
+        console.warn('API sync warning, using local state.', err);
+      }
+    }
+
+    function renderAll() {
+      renderEvents();
+      renderProposals();
+      renderRequirements();
+      renderDashboard();
+      populateEventDropdowns();
+      if (document.getElementById('grid-body').children.length === 0) {
+        initGrid();
       }
     }
 
@@ -425,16 +472,71 @@
       const reqSelect = document.getElementById('req-event-id');
       
       let html = AppState.events.map(ev => `<option value="${ev.Event_ID}">${ev.Event_ID} - ${ev.Name}</option>`).join('');
-      if (!html) html = '<option value="">No Events Available</option>';
+      if (!html) html = '<option value="">No Events Registered</option>';
       
       propSelect.innerHTML = html;
       reqSelect.innerHTML = html;
     }
 
+    function getDaysDiff(startDateStr) {
+      if (!startDateStr) return '-';
+      const start = new Date(startDateStr);
+      const today = new Date();
+      const diffTime = start - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 ? diffDays : 'Ended';
+    }
+
+    async function handleNewEventSubmit(e) {
+      e.preventDefault();
+      const eventId = 'EVT-' + Math.floor(100000 + Math.random() * 900000);
+      const newEventObj = {
+        Event_ID: eventId,
+        Name: document.getElementById('ev-name').value,
+        Type: document.getElementById('ev-type').value,
+        State: document.getElementById('ev-state').value,
+        City: document.getElementById('ev-city').value,
+        Start_Date: document.getElementById('ev-start-date').value,
+        End_Date: document.getElementById('ev-end-date').value,
+        Status: 'Scheduled',
+        Days_Remaining: getDaysDiff(document.getElementById('ev-start-date').value)
+      };
+
+      // Add to UI immediately
+      AppState.events.unshift(newEventObj);
+      localStorage.setItem('condor_events', JSON.stringify(AppState.events));
+      renderAll();
+      showToast('Event Registered Successfully!');
+      document.getElementById('form-new-event').reset();
+      switchView('events');
+
+      // Send to Google Sheets via robust POST fetch
+      try {
+        await fetch(API_ENDPOINT, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'createEvent',
+            data: {
+              name: newEventObj.Name,
+              type: newEventObj.Type,
+              state: newEventObj.State,
+              city: newEventObj.City,
+              startDate: newEventObj.Start_Date,
+              endDate: newEventObj.End_Date
+            }
+          })
+        });
+      } catch (err) {
+        console.error('Background write error:', err);
+      }
+    }
+
     function renderEvents() {
       const tbody = document.getElementById('tb-events');
       if (!AppState.events.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No scheduled events found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No scheduled events found. Go to "Create New Event".</td></tr>';
         return;
       }
       tbody.innerHTML = AppState.events.map(ev => `
@@ -444,7 +546,8 @@
           <td>${ev.Type || 'Exhibition'}</td>
           <td>${ev.City || ''}, ${ev.State || ''}</td>
           <td>${ev.Start_Date || '-'}</td>
-          <td><span class="badge ${ev.Days_Remaining < 10 ? 'badge-urgent' : 'badge-upcoming'}">${ev.Days_Remaining} Days</span></td>
+          <td>${ev.End_Date || '-'}</td>
+          <td><span class="badge ${(ev.Days_Remaining || getDaysDiff(ev.Start_Date)) < 10 ? 'badge-urgent' : 'badge-upcoming'}">${ev.Days_Remaining || getDaysDiff(ev.Start_Date)} Days</span></td>
           <td><span class="badge badge-upcoming">${ev.Status || 'Scheduled'}</span></td>
         </tr>
       `).join('');
@@ -475,7 +578,7 @@
     function renderRequirements() {
       const tbody = document.getElementById('tb-requirements');
       if (!AppState.requirements.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No items in dispatch queue.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No items in dispatch queue.</td></tr>';
         return;
       }
       tbody.innerHTML = AppState.requirements.map(r => `
@@ -485,6 +588,7 @@
           <td>${r.Category}</td>
           <td>${r.Item_Name}</td>
           <td>${r.Quantity}</td>
+          <td>${r.Remarks || '-'}</td>
           <td><b>${r.Target_Dispatch_Date}</b></td>
           <td><span class="badge badge-pending">${r.Dispatch_Status}</span></td>
         </tr>
@@ -493,8 +597,8 @@
 
     function renderDashboard() {
       document.getElementById('stat-total-events').innerText = AppState.events.length;
-      document.getElementById('stat-pending-vp').innerText = AppState.proposals.filter(p => p.VP_Approval_Status.includes('Pending')).length;
-      document.getElementById('stat-pending-director').innerText = AppState.proposals.filter(p => p.Director_Approval_Status.includes('Pending')).length;
+      document.getElementById('stat-pending-vp').innerText = AppState.proposals.filter(p => (p.VP_Approval_Status || '').includes('Pending')).length;
+      document.getElementById('stat-pending-director').innerText = AppState.proposals.filter(p => (p.Director_Approval_Status || '').includes('Pending')).length;
       document.getElementById('stat-pending-dispatch').innerText = AppState.requirements.filter(r => r.Dispatch_Status === 'Pending').length;
 
       const tbody = document.getElementById('tb-dashboard-dispatches');
@@ -509,7 +613,7 @@
             <td><b>${r.Event_ID}</b></td>
             <td>${ev.Name || 'Event'}</td>
             <td>${ev.Start_Date || '-'}</td>
-            <td><span class="badge badge-urgent">${ev.Days_Remaining || '-'} Days</span></td>
+            <td><span class="badge badge-urgent">${ev.Days_Remaining || getDaysDiff(ev.Start_Date)} Days</span></td>
             <td><b>${r.Target_Dispatch_Date}</b></td>
             <td><span class="badge badge-pending">${r.Dispatch_Status}</span></td>
           </tr>
@@ -519,58 +623,156 @@
 
     async function handleProposalSubmit(e) {
       e.preventDefault();
-      const payload = {
-        action: 'createProposal',
-        data: {
-          eventId: document.getElementById('prop-event-id').value,
-          submittedByRole: document.getElementById('prop-role').value,
-          submittedByName: document.getElementById('prop-name').value,
-          expectedVisitors: document.getElementById('prop-visitors').value,
-          expectedTurnover: document.getElementById('prop-turnover').value,
-          estimatedExpenses: document.getElementById('prop-expenses').value,
-          upperSanctionedBudget: document.getElementById('prop-budget-cap').value,
-          meetingNotes: document.getElementById('prop-notes').value
-        }
+      const propId = 'PROP-' + Math.floor(100000 + Math.random() * 900000);
+      const propObj = {
+        Proposal_ID: propId,
+        Event_ID: document.getElementById('prop-event-id').value,
+        Submitted_By_Role: document.getElementById('prop-role').value,
+        Submitted_By_Name: document.getElementById('prop-name').value,
+        Expected_Visitors: document.getElementById('prop-visitors').value,
+        Expected_Turnover: document.getElementById('prop-turnover').value,
+        Estimated_Expenses: document.getElementById('prop-expenses').value,
+        Expense_Ratio: document.getElementById('prop-ratio').value,
+        Upper_Sanctioned_Budget: document.getElementById('prop-budget-cap').value,
+        Meeting_Notes: document.getElementById('prop-notes').value,
+        VP_Approval_Status: 'Pending VP Review',
+        Director_Approval_Status: 'Pending Management Approval'
       };
 
+      AppState.proposals.unshift(propObj);
+      localStorage.setItem('condor_proposals', JSON.stringify(AppState.proposals));
+      renderAll();
+      showToast('Proposal submitted successfully!');
+      document.getElementById('form-proposal').reset();
+
       try {
-        await fetch(API_ENDPOINT, { method: 'POST', body: JSON.stringify(payload) });
-        showToast('Proposal submitted successfully!');
-        document.getElementById('form-proposal').reset();
-        loadAllData();
+        await fetch(API_ENDPOINT, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'createProposal', data: propObj })
+        });
       } catch (err) {
-        showToast('Failed to submit proposal.');
+        console.error(err);
       }
     }
 
-    async function handleRequirementsSubmit(e) {
+    /* ==========================================================================
+       EXCEL PASTE & MULTI-TAB GRID LOGIC
+       ========================================================================== */
+    function switchCategoryTab(cat, btnEl) {
+      AppState.activeCategory = cat;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+    }
+
+    function initGrid() {
+      const tbody = document.getElementById('grid-body');
+      tbody.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        addGridRow();
+      }
+    }
+
+    function addGridRow() {
+      const tbody = document.getElementById('grid-body');
+      const rowIdx = tbody.children.length + 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align: center; color: var(--text-muted); font-size: 0.8rem;">${rowIdx}</td>
+        <td><input type="text" class="excel-input col-item" placeholder="Enter or paste item name..." onpaste="handleExcelPaste(event, this)"></td>
+        <td><input type="number" class="excel-input col-qty" value="1" min="1"></td>
+        <td><input type="text" class="excel-input col-remarks" placeholder="Optional notes..."></td>
+        <td style="text-align: center;"><button class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="this.closest('tr').remove()">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function handleExcelPaste(e, inputEl) {
+      const clipboardData = (e.clipboardData || window.clipboardData).getData('text');
+      if (!clipboardData.includes('\n') && !clipboardData.includes('\t')) return;
+
       e.preventDefault();
-      const rawLines = document.getElementById('req-items-raw').value.split('\n');
-      const items = rawLines.map(line => {
-        const parts = line.split(',');
-        return {
-          category: (parts[0] || 'Promotional Material').trim(),
-          itemName: (parts[1] || 'Item').trim(),
-          quantity: parseInt((parts[2] || '1').trim())
-        };
+      const rows = clipboardData.split(/\r\n|\n|\r/);
+      let currentTr = inputEl.closest('tr');
+
+      rows.forEach(rowText => {
+        if (!rowText.trim()) return;
+        const cols = rowText.split('\t');
+
+        if (!currentTr) {
+          addGridRow();
+          currentTr = document.getElementById('grid-body').lastElementChild;
+        }
+
+        const colItem = currentTr.querySelector('.col-item');
+        const colQty = currentTr.querySelector('.col-qty');
+        const colRemarks = currentTr.querySelector('.col-remarks');
+
+        if (cols[0] && colItem) colItem.value = cols[0].trim();
+        if (cols[1] && colQty) colQty.value = parseInt(cols[1].trim()) || 1;
+        if (cols[2] && colRemarks) colRemarks.value = cols[2].trim();
+
+        currentTr = currentTr.nextElementSibling;
+      });
+    }
+
+    async function submitGridRequirements() {
+      const eventId = document.getElementById('req-event-id').value;
+      if (!eventId) {
+        showToast('Please select an Event first!');
+        return;
+      }
+
+      const rows = document.querySelectorAll('#grid-body tr');
+      const items = [];
+
+      rows.forEach(tr => {
+        const itemVal = tr.querySelector('.col-item').value.trim();
+        const qtyVal = parseInt(tr.querySelector('.col-qty').value) || 1;
+        const remarksVal = tr.querySelector('.col-remarks').value.trim();
+
+        if (itemVal) {
+          items.push({
+            Req_ID: 'REQ-' + Math.floor(100000 + Math.random() * 900000),
+            Event_ID: eventId,
+            Category: AppState.activeCategory,
+            Item_Name: itemVal,
+            Quantity: qtyVal,
+            Remarks: remarksVal,
+            Target_Dispatch_Date: 'Calculating...',
+            Dispatch_Status: 'Pending'
+          });
+        }
       });
 
-      const payload = {
-        action: 'bulkUploadRequirements',
-        data: {
-          eventId: document.getElementById('req-event-id').value,
-          bufferDays: parseInt(document.getElementById('req-buffer-days').value),
-          items: items
-        }
-      };
+      if (!items.length) {
+        showToast('Please enter at least one item before submitting.');
+        return;
+      }
+
+      AppState.requirements.unshift(...items);
+      localStorage.setItem('condor_reqs', JSON.stringify(AppState.requirements));
+      renderAll();
+      showToast(`Added ${items.length} ${AppState.activeCategory} items to dispatch queue!`);
+      initGrid();
 
       try {
-        await fetch(API_ENDPOINT, { method: 'POST', body: JSON.stringify(payload) });
-        showToast('Material & Sample list added to dispatch queue!');
-        document.getElementById('form-materials').reset();
-        loadAllData();
+        await fetch(API_ENDPOINT, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'bulkUploadRequirements',
+            data: {
+              eventId: eventId,
+              bufferDays: parseInt(document.getElementById('req-buffer-days').value) || 7,
+              items: items
+            }
+          })
+        });
       } catch (err) {
-        showToast('Failed to queue requirements.');
+        console.error(err);
       }
     }
   </script>
