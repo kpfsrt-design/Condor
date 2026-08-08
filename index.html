@@ -82,7 +82,8 @@
     /* Overlay */
     .auth-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex; align-items: center; justify-content: center; z-index: 999; }
     .auth-box { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-    .toast { position: fixed; bottom: 20px; right: 20px; background: #334155; color: white; padding: 12px 20px; border-radius: 6px; display: none; font-size: 0.9rem; z-index: 1000; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #334155; color: white; padding: 12px 20px; border-radius: 6px; display: none; font-size: 0.9rem; z-index: 1000; max-width: 360px; }
+    .toast.toast-error { background: var(--danger); }
   </style>
 </head>
 <body>
@@ -383,9 +384,10 @@
       activeCategory: 'Samples'
     };
 
-    function showToast(msg) {
+    function showToast(msg, isError) {
       const toast = document.getElementById('toast');
       toast.innerText = msg;
+      toast.classList.toggle('toast-error', !!isError);
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 3500);
     }
@@ -453,6 +455,7 @@
         renderAll();
       } catch (err) {
         console.warn('API sync warning, using local state.', err);
+        showToast('Could not reach the server — showing locally saved data only.', true);
       }
     }
 
@@ -467,38 +470,37 @@
       }
     }
 
-  function populateEventDropdowns() {
-  const propSelect = document.getElementById('prop-event-id');
-  const reqSelect = document.getElementById('req-event-id');
-  
-  if (!propSelect || !reqSelect) return;
+    function populateEventDropdowns() {
+      const propSelect = document.getElementById('prop-event-id');
+      const reqSelect = document.getElementById('req-event-id');
 
-  const savedEvents = JSON.parse(localStorage.getItem('condor_events') || '[]');
-  const allEventsMap = new Map();
+      if (!propSelect || !reqSelect) return;
 
-  [...AppState.events, ...savedEvents].forEach(ev => {
-    const id = ev.Event_ID || ev.id;
-    const name = ev.Name || ev.name;
-    if (id && name) {
-      allEventsMap.set(id, { Event_ID: id, Name: name });
-    }
-  });
+      const savedEvents = JSON.parse(localStorage.getItem('condor_events') || '[]');
+      const allEventsMap = new Map();
 
-  const uniqueEvents = Array.from(allEventsMap.values());
+      [...AppState.events, ...savedEvents].forEach(ev => {
+        const id = ev.Event_ID || ev.id;
+        const name = ev.Name || ev.name;
+        if (id && name) {
+          allEventsMap.set(id, { Event_ID: id, Name: name });
+        }
+      });
 
-  if (uniqueEvents.length === 0) {
-    propSelect.innerHTML = '<option value="">No Events Available</option>';
-    reqSelect.innerHTML = '<option value="">No Events Available</option>';
-    return;
-  }
+      const uniqueEvents = Array.from(allEventsMap.values());
 
-  const optionsHtml = uniqueEvents.map(ev => 
-    `<option value="${ev.Event_ID}">${ev.Event_ID} - ${ev.Name}</option>`
-  ).join('');
-  
-  propSelect.innerHTML = optionsHtml;
-  reqSelect.innerHTML = optionsHtml;
-}
+      if (uniqueEvents.length === 0) {
+        propSelect.innerHTML = '<option value="">No Events Available</option>';
+        reqSelect.innerHTML = '<option value="">No Events Available</option>';
+        return;
+      }
+
+      const optionsHtml = uniqueEvents.map(ev =>
+        `<option value="${ev.Event_ID}">${ev.Event_ID} - ${ev.Name}</option>`
+      ).join('');
+
+      propSelect.innerHTML = optionsHtml;
+      reqSelect.innerHTML = optionsHtml;
     }
 
     function getDaysDiff(startDateStr) {
@@ -508,6 +510,15 @@
       const diffTime = start - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays >= 0 ? diffDays : 'Ended';
+    }
+
+    // Given an event's Start_Date and a buffer in days, return the target dispatch date (yyyy-mm-dd)
+    function calcDispatchDate(startDateStr, bufferDays) {
+      if (!startDateStr) return '-';
+      const start = new Date(startDateStr);
+      if (isNaN(start.getTime())) return '-';
+      const dispatch = new Date(start.getTime() - (bufferDays * 24 * 60 * 60 * 1000));
+      return dispatch.toISOString().split('T')[0];
     }
 
     async function handleNewEventSubmit(e) {
@@ -553,6 +564,7 @@
         });
       } catch (err) {
         console.error('Background write error:', err);
+        showToast('Saved locally, but the server write failed. Check your connection.', true);
       }
     }
 
@@ -677,6 +689,7 @@
         });
       } catch (err) {
         console.error(err);
+        showToast('Saved locally, but the server write failed. Check your connection.', true);
       }
     }
 
@@ -747,6 +760,10 @@
         return;
       }
 
+      const bufferDays = parseInt(document.getElementById('req-buffer-days').value) || 7;
+      const selectedEvent = AppState.events.find(e => e.Event_ID === eventId) || {};
+      const targetDispatchDate = calcDispatchDate(selectedEvent.Start_Date, bufferDays);
+
       const rows = document.querySelectorAll('#grid-body tr');
       const items = [];
 
@@ -763,7 +780,7 @@
             Item_Name: itemVal,
             Quantity: qtyVal,
             Remarks: remarksVal,
-            Target_Dispatch_Date: 'Calculating...',
+            Target_Dispatch_Date: targetDispatchDate,
             Dispatch_Status: 'Pending'
           });
         }
@@ -789,14 +806,20 @@
             action: 'bulkUploadRequirements',
             data: {
               eventId: eventId,
-              bufferDays: parseInt(document.getElementById('req-buffer-days').value) || 7,
+              bufferDays: bufferDays,
               items: items
             }
           })
         });
       } catch (err) {
         console.error(err);
+        showToast('Saved locally, but the server write failed. Check your connection.', true);
       }
+    }
+
+    // Boot
+    if (document.getElementById('auth-modal').style.display !== 'none') {
+      // modal is shown by default via CSS; data loads on login
     }
   </script>
 </body>
